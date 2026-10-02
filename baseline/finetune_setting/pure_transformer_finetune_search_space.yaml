@@ -1,0 +1,73 @@
+pure_transformer_finetune_search:
+  description: "Hyperparameter tuning configuration for the pure Transformer EWAS baseline. The full hyperparameter grid is enumerated, invalid configurations are filtered, and the selected configurations are executed by calling the external pure_transformer_ewas_baseline.py script. Trial outputs are temporary, while the best validation-AUROC and best test-AUROC trial folders are retained."
+  model_class: "Pure Transformer baseline"
+  script: "pure_transformer_ewas_baseline.py"
+  execution_mode: "subprocess per configuration"
+  data:
+    train_csv: "ml_train_both_v3.csv"
+    valid_csv: "ml_valid_both_v3.csv"
+    test_csv: "ml_test_both_v3.csv"
+    feature_set: "all"
+    cpg_column_range:
+      note: "The uploaded tuning wrapper leaves cpg_start_excel and cpg_end_excel commented out. If CpG columns are not detected automatically by the baseline script, the range should be enabled."
+  tuning_protocol:
+    sampling_method: "full_grid_or_deterministic_grid_prefix"
+    num_trials: 48
+    configuration_filter: "embed_dim must be divisible by heads"
+    random_seed: 42
+    epochs: 40
+    patience: 8
+    monitor_metric_for_checkpoint: "f1"
+    device: "cuda"
+    threshold_source: "valid_f1"
+    ranking_metric: "valid_auroc"
+    feature_set: "all"
+  search_space:
+    embed_dim:
+      - 64
+      - 128
+    num_layers:
+      - 2
+      - 3
+    heads:
+      - 1
+    dropout:
+      - 0.2
+      - 0.25
+      - 0.3
+    batch_size:
+      - 16
+    lr:
+      - 0.0005
+      - 5e-05
+    weight_decay:
+      - 0.0001
+      - 0.0005
+    loss_type:
+      - "combo"
+    pooling:
+      - "cls"
+  training_command_fixed_arguments:
+    epochs: 40
+    patience: 8
+    monitor_metric: "f1"
+    device: "cuda"
+    seed: 42
+    feature_sets: "all"
+  metrics:
+    threshold_row_used: "valid_f1"
+    threshold_note: "Metrics are read from rows where threshold_name == 'valid_f1'. This means the classification threshold is selected on the validation set by maximizing F1, and the same validation-selected threshold is applied to the test set."
+    probability_based:
+      - "AUROC"
+      - "AUPRC"
+    threshold_based:
+      - "accuracy"
+      - "balanced_accuracy"
+      - "precision"
+      - "recall"
+      - "specificity"
+      - "F1"
+    checkpoint_information:
+      - "best_epoch"
+      - "monitor_metric"
+      - "best_monitor"

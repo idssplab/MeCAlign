@@ -1,0 +1,79 @@
+catboost_finetune_search:
+  description: "Hyperparameter tuning configuration for the CatBoost baseline. The full grid is enumerated, shuffled with a fixed random seed, and a fixed number of configurations is selected for evaluation. Early stopping is based on validation F1, while final ranking is based on AUROC."
+  model_class: "CatBoostClassifier"
+  library: "catboost"
+  data:
+    train_features: "train_df[all_baseline_features]"
+    valid_features: "valid_df[all_baseline_features]"
+    test_features: "test_df[all_baseline_features]"
+    target_column: "target_col"
+    categorical_feature_detection: "Features with dtype object, category, or bool are treated as categorical features."
+    categorical_missing_value_handling: "Categorical features are cast to string and missing values are filled with '__MISSING__'."
+  tuning_protocol:
+    sampling_method: "shuffled_grid_subset"
+    random_seed: 42
+    num_trials: 40
+    note: "The script enumerates all grid combinations, shuffles them with RANDOM_SEED=42, and then runs the first MAX_TRIALS configurations. The uploaded code sets MAX_TRIALS=40; set MAX_TRIALS=30 if exactly 30 sampled configurations were used."
+    catboost_eval_metric: "F1"
+    early_stopping_rounds: 50
+    use_best_model: true
+    ranking_metric: "auroc"
+    threshold_mode: "0.5"
+    threshold_note: "A fixed threshold of 0.5 is used for F1, precision, recall, specificity, balanced accuracy, and accuracy. The script also computes the validation-optimal F1 threshold, but it is only applied when THRESHOLD_MODE is set to 'valid_f1'."
+  search_space:
+    iterations:
+      - 500
+      - 1000
+    learning_rate:
+      - 0.01
+      - 0.03
+      - 0.05
+    depth:
+      - 4
+      - 6
+      - 8
+    l2_leaf_reg:
+      - 1.0
+      - 3.0
+      - 5.0
+    random_strength:
+      - 1.0
+      - 5.0
+    border_count:
+      - 128
+      - 254
+  fixed_catboost_parameters:
+    loss_function: "Logloss"
+    eval_metric: "F1"
+    class_weights: "balanced class weights computed from the training set unless predefined class_weights are provided"
+    random_seed: 42
+    verbose: false
+    allow_writing_files: false
+  class_weighting:
+    strategy: "balanced"
+    formula:
+      w0: "total / (2 * n_negative)"
+      w1: "total / (2 * n_positive)"
+    note: "If class_weights already exists in the notebook, the script uses it. Otherwise, balanced weights are computed automatically from the training labels."
+  metrics:
+    probability_based:
+      - "AUROC"
+      - "AUPRC"
+    threshold_based:
+      - "accuracy"
+      - "balanced_accuracy"
+      - "precision"
+      - "recall"
+      - "specificity"
+      - "F1"
+      - "TN"
+      - "FP"
+      - "FN"
+      - "TP"
+    validation_threshold_grid:
+      enabled_for_reporting: true
+      grid_size: 101
+      range:
+        - 0.0
+        - 1.0
+      used_for_test_metrics_when: "THRESHOLD_MODE == 'valid_f1'"

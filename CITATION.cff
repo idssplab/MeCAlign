@@ -1,0 +1,34 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite our paper as below."
+title: "MeCAlign"
+type: software
+license: MIT
+repository-code: "https://github.com/YOUR-LAB-ORG/MeCAlign"  # TODO: 換成實際網址
+authors: &authors
+  - given-names: Cheng-Han
+    family-names: Tsai
+  - given-names: Chia-Hsin
+    family-names: Fan
+  - given-names: Yi
+    family-names: Chuang
+  - given-names: Pranay Sudhir
+    family-names: Dongre
+  - given-names: Tao-Jun
+    family-names: Hwang
+  - given-names: Shih-chun
+    family-names: Pan
+  - given-names: Yue Leon
+    family-names: Guo
+  - given-names: Che
+    family-names: Lin
+preferred-citation:
+  type: conference-paper
+  title: "MeCAlign: Integrating DNA Methylation and Clinical Profiles for Hypertension Risk Stratification"
+  authors: *authors
+  collection-title: "IEEE EMBS International Conference on Biomedical and Health Informatics (BHI)"
+  conference:
+    name: "IEEE EMBS International Conference on Biomedical and Health Informatics (BHI)"
+    city: "Hong Kong"
+  year: 2026
+  month: 12
+  # doi: "10.1109/XXXXX"  # TODO: DOI

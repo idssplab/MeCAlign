@@ -1,0 +1,125 @@
+ft_transformer_finetune_search:
+  description: "Hyperparameter tuning configuration for the FT-Transformer baseline using PyTorch Tabular. The full grid is enumerated, invalid configurations are filtered, the remaining configurations are shuffled with a fixed random seed, and a subset is evaluated. The official selection metric is validation F1."
+  model_class: "FTTransformerConfig"
+  wrapper: "pytorch_tabular.TabularModel"
+  library: "pytorch_tabular"
+  data:
+    train_features: "train_df[all_baseline_features]"
+    valid_features: "valid_df[all_baseline_features]"
+    test_features: "test_df[all_baseline_features]"
+    target_column: "target_col"
+    task: "binary classification"
+    known_categorical_columns:
+      - "SEX"
+      - "smoking"
+      - "DRK"
+      - "betel"
+      - "SPORT"
+      - "HTN_FAM"
+      - "edu"
+    categorical_column_detection: "Known categorical columns are combined with automatically detected columns whose dtype is object, category, or bool."
+    continuous_columns: "All baseline features not assigned to categorical columns are treated as continuous."
+    categorical_missing_value_handling: "Categorical values are filled with '__MISSING__' and cast to string."
+    continuous_missing_value_handling: "Continuous features are converted to numeric values and missing values are imputed with the training-set median. If the training median is missing, 0.0 is used."
+  tuning_protocol:
+    sampling_method: "shuffled_grid_subset"
+    random_seed: 42
+    num_trials: 40
+    configuration_filter: "input_embed_dim must be divisible by num_heads"
+    threshold_mode: "valid_f1"
+    selection_metric: "valid_f1"
+    reference_metrics:
+      - "valid_auroc"
+      - "test_f1"
+    temporary_directory_cleanup: true
+  data_config:
+    target:
+      - "target_col"
+    continuous_cols: "continuous_cols"
+    categorical_cols: "categorical_cols"
+  model_config:
+    task: "classification"
+    input_embed_dim: "sampled from search_space"
+    num_attn_blocks: "sampled from search_space"
+    num_heads: "sampled from search_space"
+    attn_dropout: "sampled from search_space"
+    ff_dropout: "sampled from search_space"
+    learning_rate: "sampled lr from search_space"
+    ff_hidden_multiplier: 4
+    note: "The learning rate is passed only to FTTransformerConfig.learning_rate, not to optimizer_params, to avoid duplicate lr in AdamW."
+  trainer_config:
+    batch_size: "sampled from search_space"
+    max_epochs: "sampled from search_space"
+    early_stopping: "valid_loss"
+    early_stopping_mode: "min"
+    early_stopping_patience: "sampled from search_space"
+    checkpoints: "valid_loss"
+    checkpoints_mode: "min"
+    load_best: true
+    progress_bar: "none"
+    accelerator: "gpu if available, otherwise cpu"
+    devices: 1
+  optimizer_config:
+    optimizer: "AdamW"
+    optimizer_params:
+      weight_decay: "sampled from search_space"
+    note: "Learning rate is not duplicated in optimizer_params."
+  loss:
+    loss_function: "CrossEntropyLoss"
+    class_weighting: "balanced"
+    class_weight_source: "training labels"
+    formula: "computed using sklearn.utils.class_weight.compute_class_weight(class_weight='balanced')"
+  search_space:
+    input_embed_dim:
+      - 64
+      - 128
+      - 256
+    num_attn_blocks:
+      - 2
+      - 3
+    num_heads:
+      - 2
+      - 4
+    attn_dropout:
+      - 0.2
+      - 0.25
+      - 0.3
+    ff_dropout:
+      - 0.1
+      - 0.2
+      - 0.3
+    batch_size:
+      - 16
+    lr:
+      - 0.0001
+      - 0.0005
+    weight_decay:
+      - 1e-05
+      - 0.0001
+      - 0.0005
+    max_epochs:
+      - 50
+    early_stopping_patience:
+      - 10
+  metrics:
+    probability_based:
+      - "AUROC"
+      - "AUPRC"
+    threshold_based:
+      - "accuracy"
+      - "balanced_accuracy"
+      - "precision"
+      - "recall"
+      - "specificity"
+      - "F1"
+      - "TN"
+      - "FP"
+      - "FN"
+      - "TP"
+    threshold_selection:
+      method: "maximize validation F1"
+      grid_size: 101
+      range:
+        - 0.0
+        - 1.0
+      application: "The validation-selected F1 threshold is applied to both validation and test metrics."

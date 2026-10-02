@@ -1,0 +1,91 @@
+clinical_only_finetune_search:
+  description: "Random-search hyperparameter configuration for fine-tuning the ClinicalOnlyModel baseline. A total of 30 settings are randomly sampled from the search space. Model selection is based on validation F1."
+  model_class: "ClinicalOnlyModel"
+  dataset:
+    dataset_class: "EWASCSVBridgeDataset"
+    id_col: "CaseNo"
+    label_col: "EWAS_label"
+    splits:
+      - "train"
+      - "valid"
+      - "test"
+    note: "The validation and test datasets reuse the scaler, categorical mappings, continuous feature columns, categorical feature columns, CpG probe IDs, and region columns derived from the training dataset."
+  random_search:
+    num_trials: 30
+    epochs: 50
+    seed: 42
+    batch_size: 16
+    num_workers: 2
+    use_amp: false
+    use_pos_weight: true
+    sampling_rule: "Each trial samples one value from each hyperparameter specification. List-valued parameters are sampled by random choice, uniform parameters are sampled from a continuous uniform distribution, and loguniform parameters are sampled from a log-uniform distribution. Configurations are resampled until embed_dim is divisible by the number of attention heads."
+  search_space:
+    clinical_encoder_capacity:
+      embed_dim:
+        - 32
+        - 64
+        - 96
+        - 128
+      heads:
+        - 1
+        - 2
+      layers_per_block:
+        - 1
+        - 2
+        - 3
+      dropout:
+        type: "uniform"
+        low: 0.05
+        high: 0.35
+      clinical_feature_dropout:
+        - 0.0
+        - 0.05
+        - 0.1
+        - 0.2
+      p_clin_mask:
+        - 0.0
+        - 0.05
+        - 0.1
+        - 0.15
+      use_clin_cont_feature_tokens:
+        - true
+      classifier_hidden_mult:
+        - 1
+        - 2
+        - 3
+        - 4
+    loss_class_imbalance:
+      loss_weight_scale:
+        - 0.0
+        - 0.25
+        - 0.5
+        - 0.75
+        - 1.0
+      criterion: "BCEWithLogitsLoss"
+      positive_weighting: "When use_pos_weight is enabled, the effective positive-class weight is computed as 1 + loss_weight_scale * (base_pos_weight - 1), where base_pos_weight = n_negative / n_positive."
+    optimizer:
+      optimizer: "AdamW"
+      lr:
+        type: "loguniform"
+        low: 5e-05
+        high: 0.001
+      weight_decay:
+        type: "loguniform"
+        low: 1e-07
+        high: 0.0003
+      grad_clip:
+        - 0.5
+        - 1.0
+        - 2.0
+      scheduler:
+        - "cosine"
+      warmup_epochs:
+        - 0
+        - 2
+        - 3
+        - 5
+      eta_min:
+        - 1e-06
+  model_selection_and_outputs:
+    selection_metric: "validation F1"
+    threshold_selection: "For validation, the threshold is selected by maximizing F1 over thresholds from 0.01 to 0.99. Test metrics, when reported, use the validation-selected threshold."

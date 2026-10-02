@@ -1,0 +1,85 @@
+tabm_finetune_search:
+  description: "Hyperparameter tuning configuration for the TabM baseline. The full hyperparameter grid is enumerated, shuffled with a fixed random seed, and a fixed subset of configurations is evaluated. The script saves only performance CSV files and does not save model checkpoints."
+  model_class: "tabm.TabM"
+  numeric_embedding: "rtdl_num_embeddings.LinearReLUEmbeddings"
+  task: "binary classification"
+  device: "cuda if available, otherwise cpu"
+  data:
+    feature_source: "Uses all_baseline_features if available; otherwise concatenates methy_cols, metadata_cols, and clinical_cols."
+    target_column: "target_col"
+    input_format: "numeric tensor"
+    categorical_handling: "TabM only accepts numeric tensors. Object, category, and bool columns are treated as categorical and converted using one-hot encoding."
+    categorical_missing_value_handling: "Categorical values are cast to string and missing values are filled with '__MISSING__'."
+    numeric_missing_value_handling: "Numeric columns are converted using pandas.to_numeric, and missing values are imputed with the training-set median. If a median is missing, 0.0 is used."
+    feature_alignment: "Validation and test one-hot matrices are aligned to the training dummy columns. Unseen categories in validation/test are ignored, and missing dummy columns are filled with 0."
+    standardize_features: false
+  tuning_protocol:
+    sampling_method: "shuffled_grid_subset"
+    random_seed: 42
+    num_trials: 40
+    num_workers: 0
+    threshold_mode: "0.5"
+    early_stopping_metric: "f1"
+    ranking_metric: "valid_auroc"
+    models_saved: false
+  model_config:
+    n_num_features: "n_features after numeric conversion and one-hot encoding"
+    num_embeddings: "LinearReLUEmbeddings(n_features)"
+    d_out: 2
+    k: "sampled from search_space"
+  training:
+    optimizer: "AdamW"
+    loss_function: "CrossEntropyLoss"
+    class_weighting: "balanced"
+    class_weight_source: "training labels"
+    tabm_loss: "TabM produces logits with shape [batch_size, k, num_classes]. Cross-entropy loss is computed for each of the k submodels and averaged."
+    prediction_aggregation: "Softmax probabilities are computed for each submodel and then averaged across k."
+    early_stopping:
+      monitor: "validation F1 at threshold 0.5"
+      mode: "maximize"
+      patience: "sampled from search_space"
+      best_weights: "kept in memory only and restored before final evaluation"
+  search_space:
+    k:
+      - 4
+      - 8
+      - 16
+    batch_size:
+      - 16
+      - 32
+    lr:
+      - 0.0001
+      - 0.0005
+    weight_decay:
+      - 0.0001
+      - 0.001
+      - 0.01
+      - 0.1
+    max_epochs:
+      - 50
+    patience:
+      - 5
+      - 10
+  metrics:
+    probability_based:
+      - "AUROC"
+      - "AUPRC"
+    threshold_based:
+      - "accuracy"
+      - "balanced_accuracy"
+      - "precision"
+      - "recall"
+      - "specificity"
+      - "F1"
+      - "TN"
+      - "FP"
+      - "FN"
+      - "TP"
+    threshold_selection:
+      reported_validation_f1_threshold: true
+      grid_size: 101
+      range:
+        - 0.0
+        - 1.0
+      used_for_metrics_when: "THRESHOLD_MODE == 'valid_f1'"
+      current_threshold_mode: "0.5"

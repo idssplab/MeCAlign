@@ -1,0 +1,71 @@
+xgboost_finetune_search:
+  description: "Hyperparameter tuning configuration for the XGBoost EWAS baseline. The full hyperparameter grid is enumerated deterministically, and a fixed prefix subset of configurations is evaluated. Each configuration is executed by calling the external xgboost_ewas_baseline.py script, and only summary CSV results are retained."
+  model_class: "XGBoost baseline"
+  script: "xgboost_ewas_baseline.py"
+  execution_mode: "subprocess per configuration"
+  data:
+    train_csv: "ml_train_both_v3.csv"
+    valid_csv: "ml_valid_both_v3.csv"
+    test_csv: "ml_test_both_v3.csv"
+    feature_set: "all"
+    cpg_column_range:
+      cpg_start_excel: "AF"
+      cpg_end_excel: "HW"
+  tuning_protocol:
+    sampling_method: "deterministic_grid_prefix"
+    num_trials: 40
+    random_seed: 42
+    eval_metric_passed_to_xgboost_script: "aucpr"
+    ranking_metric: "f1"
+    threshold_source: "valid_f1"
+    threshold_note: "Metrics are read from rows where threshold_name == 'valid_f1'. This means the threshold is selected on the validation set by F1, and the same validation-selected threshold is applied to the test set."
+    models_saved: false
+    temporary_trial_dirs_removed: true
+  search_space:
+    n_estimators:
+      - 200
+      - 300
+      - 500
+    max_depth:
+      - 2
+      - 3
+    learning_rate:
+      - 0.01
+      - 0.001
+      - 0.0001
+    subsample:
+      - 0.8
+      - 1.0
+    colsample_bytree:
+      - 0.8
+      - 1.0
+    min_child_weight:
+      - 1.0
+      - 3.0
+    reg_lambda:
+      - 1.0
+      - 5.0
+    reg_alpha:
+      - 0.0
+      - 0.5
+    scale_pos_weight:
+      - "sqrt"
+  metrics:
+    ranked_by: "valid_f1"
+    probability_based:
+      - "AUROC"
+      - "AUPRC"
+    threshold_based:
+      - "accuracy"
+      - "balanced_accuracy"
+      - "precision"
+      - "recall"
+      - "specificity"
+      - "F1"
+      - "TN"
+      - "FP"
+      - "FN"
+      - "TP"
+    additional_information:
+      - "num_features"
+      - "scale_pos_weight_used"

@@ -1,0 +1,264 @@
+finetune_search:
+  description: "Two-stage hyperparameter search configuration for MeCAlign fine-tuning. Stage 1 uses a broad search space with 30 sampled settings; Stage 2 narrows the search space based on Stage 1 and samples another 30 settings."
+  stage_1_broad_finetune:
+    num_trials: 30
+    search_space:
+      model_capacity:
+        embed_dim:
+          - 64
+          - 96
+          - 128
+          - 160
+        heads:
+          - 1
+        layers_per_block:
+          - 2
+          - 3
+        dropout:
+          type: "uniform"
+          low: 0.1
+          high: 0.35
+      methylation_preprocessing_regularization:
+        probe_fusion_type:
+          - "film"
+        methy_transform:
+          - "none"
+        use_value_mlp:
+          - false
+          - true
+        p_clin_mask:
+          - 0.0
+          - 0.05
+          - 0.1
+        p_methyl_mask:
+          - 0.0
+          - 0.05
+          - 0.1
+        use_probe_identity_embedding:
+          - true
+        clinical_feature_dropout:
+          - 0.0
+          - 0.05
+          - 0.1
+        use_clin_cont_feature_tokens:
+          - true
+        use_region_tokens:
+          - true
+        disable_region_film:
+          - false
+      latent_reencoding_alignment_tokens:
+        use_latent_reencoding:
+          - true
+        num_latent_tokens:
+          - 200
+        use_cpg_gate:
+          - true
+        gate_tau:
+          - 0.7
+          - 1.0
+          - 1.5
+        use_alignment_tokens:
+          - true
+        num_alignment_tokens:
+          - 4
+          - 8
+          - 12
+      routed_low_rank_adapters:
+        use_routed_adapters:
+          - true
+        adapter_layers:
+          - "last"
+        num_adapter_experts:
+          - 2
+          - 3
+          - 4
+        adapter_rank:
+          - 4
+          - 8
+          - 16
+        adapter_scale:
+          - 0.05
+          - 0.1
+          - 0.2
+        adapter_scale_learnable:
+          - false
+          - true
+        router_tau:
+          - 0.7
+          - 1.0
+          - 1.5
+      loss:
+        lambda_align:
+          - 0.0
+          - 0.005
+          - 0.01
+        align_loss_type:
+          - "cosine"
+        lambda_gate_entropy:
+          - 0.0
+        lambda_router_balance:
+          - 0.0
+          - 0.0005
+          - 0.001
+          - 0.003
+        lambda_adapter_diversity:
+          - 0.0
+          - 0.0001
+          - 0.0003
+        loss_weight_scale:
+          - 0.5
+          - 0.75
+          - 1.0
+      optimizer:
+        lr:
+          type: "loguniform"
+          low: 0.0001
+          high: 0.0008
+        weight_decay:
+          type: "loguniform"
+          low: 1e-06
+          high: 0.0002
+        grad_clip:
+          - 0.5
+          - 1.0
+          - 2.0
+        scheduler:
+          - "cosine"
+        warmup_epochs:
+          - 2
+          - 3
+          - 5
+        eta_min:
+          - 1e-06
+  stage_2_refined_finetune:
+    num_trials: 30
+    notes:
+      - "The learning-rate range is written with the corrected order: low=1.2e-4 and high=4.5e-4."
+      - "This stage fixes the model size and narrows the adapter and regularization ranges based on Stage 1."
+    search_space:
+      model_size:
+        embed_dim:
+          - 128
+        heads:
+          - 1
+        layers_per_block:
+          - 2
+        dropout:
+          type: "uniform"
+          low: 0.12
+          high: 0.22
+      basic_v1_components:
+        probe_fusion_type:
+          - "film"
+        methy_transform:
+          - "none"
+        use_value_mlp:
+          - false
+          - true
+        p_clin_mask:
+          - 0.05
+          - 0.1
+        p_methyl_mask:
+          - 0.0
+          - 0.05
+        use_probe_identity_embedding:
+          - true
+        clinical_feature_dropout:
+          - 0.0
+          - 0.05
+          - 0.1
+        use_clin_cont_feature_tokens:
+          - true
+        use_region_tokens:
+          - true
+        disable_region_film:
+          - false
+        use_latent_reencoding:
+          - true
+        num_latent_tokens:
+          - 200
+        use_cpg_gate:
+          - true
+        gate_tau:
+          - 0.7
+          - 1.0
+          - 1.5
+        use_alignment_tokens:
+          - true
+        num_alignment_tokens:
+          - 4
+          - 8
+          - 12
+      v2_routed_adapters:
+        use_routed_adapters:
+          - true
+        adapter_layers:
+          - "last"
+        num_adapter_experts:
+          - 3
+        adapter_rank:
+          - 8
+          - 12
+          - 16
+        adapter_scale:
+          - 0.075
+          - 0.1
+          - 0.125
+          - 0.15
+        adapter_scale_learnable:
+          - true
+        router_tau:
+          - 0.7
+          - 1.0
+      loss:
+        lambda_align:
+          - 0.0
+          - 0.001
+          - 0.002
+        align_loss_type:
+          - "cosine"
+        lambda_barlow:
+          - 0.0
+          - 0.0005
+          - 0.001
+          - 0.002
+          - 0.005
+        barlow_offdiag_weight:
+          - 0.002
+          - 0.005
+          - 0.01
+        lambda_gate_entropy:
+          - 0.0
+        lambda_router_balance:
+          - 0.0
+          - 0.0003
+          - 0.0005
+          - 0.001
+        lambda_adapter_diversity:
+          - 0.0
+          - 0.0001
+          - 0.0003
+        loss_weight_scale:
+          - 0.4
+          - 0.5
+          - 0.6
+          - 0.75
+      optimizer:
+        lr:
+          type: "loguniform"
+          low: 0.00012
+          high: 0.00045
+        weight_decay:
+          type: "loguniform"
+          low: 1e-06
+          high: 8e-05
+        grad_clip:
+          - 0.5
+          - 1.0
+        scheduler:
+          - "cosine"
+        warmup_epochs:
+          - 3
+          - 5
+        eta_min:
+          - 1e-06
